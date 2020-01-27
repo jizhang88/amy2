@@ -1,0 +1,71 @@
+function create_cookie(name, value, days2expire, path, domain) {
+  var date = new Date();
+  date.setTime(date.getTime() + (days2expire * 24 * 60 * 60 * 1000));
+  var expires = date.toUTCString();
+  document.cookie = name + '=' + value + ';' +
+                   'expires=' + expires + ';' +
+                   'path=' + path + ';';
+}
+
+function retrieve_cookie(name) {
+	var cookie_value = "",
+    current_cookie = "",
+    name_expr = name + "=",
+    all_cookies = document.cookie.split(';'),
+    n = all_cookies.length;
+ 
+  for(var i = 0; i < n; i++) {
+    current_cookie = all_cookies[i].trim();
+    if(current_cookie.indexOf(name_expr) == 0) {
+      cookie_value = current_cookie.substring(name_expr.length, current_cookie.length);
+      break;
+    }
+  }
+  return cookie_value;
+}
+
+function delete_cookie(name) {
+  document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+}
+
+/*function site_extention_script() {
+	var apiUrl = document.getElementById("apiUrl").value;
+	var extension_script = '';
+	
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			extension_script = this.responseText;
+		}
+	};
+	xhttp.open("GET", apiUrl, true);
+	xhttp.send();
+	return extension_script;
+}*/
+
+function site_visit_count() {
+	var cookie_name = document.getElementById("cookie_name").value;
+	var cookie_value = document.getElementById("cookie_value").value;
+	var cookie_domain = document.getElementById("cookie_domain").value;
+	var cookie_CustomerId = document.getElementById("cookie_CustomerId").value;
+	var cookie_count_ajaxurl = document.getElementById("cookie_count_ajaxurl").value;
+	var cookie_SiteId = document.getElementById("cookie_SiteId").value;
+	var cookie_referer_url =  document.getElementById("cookie_referer_url").value;
+	var cookie_api_url = document.getElementById("cookie_api_url").value;
+	var res = retrieve_cookie(cookie_name);
+	if(!res) {
+		create_cookie(cookie_name, cookie_value, 1, "/", cookie_domain);
+		var xhttp = new XMLHttpRequest();
+  		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				console.log(this.responseText);
+			} else{
+				console.log( 'Not Increase' );
+			}
+		};
+		var data = "action=webalias_site_count&Webalias="+cookie_value+"&CustomerId="+cookie_CustomerId+"&SiteId="+cookie_SiteId+"&referer_url="+cookie_referer_url+"&api_url="+cookie_api_url;
+		xhttp.open("POST", cookie_count_ajaxurl, true);
+		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xhttp.send(data);
+	}
+}

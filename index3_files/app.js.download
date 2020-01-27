@@ -1,0 +1,815 @@
+/* eslint-env browser */
+/* globals HTMLElement, Bouncer, jCaptcha, Slider */
+
+// -------------------------------------------------------------------------------------------------
+// Initializations.
+//
+
+// Off canvas nav.
+initOffCanvasNav()
+
+// Show / hide toggles.
+initToggles()
+
+// Mini image gallery.
+initProductGallery()
+
+// Carousels.
+Array.from(document.querySelectorAll('.carousel')).forEach(function (element) {
+  const options = {
+    autoplay: element.dataset.carouselAutoplay ? parseInt(element.dataset.carouselAutoplay, 10) : false,
+    vertical: 'carouselVertical' in element.dataset,
+    infinite: element.dataset.carouselInfinite !== 'false'
+  }
+  // eslint-disable-next-line no-unused-vars
+  const carousel = new Carousel(element, options)
+})
+
+// Form validations.
+// eslint-disable-next-line no-unused-vars, new-cap
+const captcha = new jCaptcha({ el: 'input__field--captcha',
+  requiredValue: '',
+  canvasFillStyle: '#000',
+  callback: function (result, $field) {
+    const field = $field[0]
+    if (result === 'success') {
+      field.isValid = true
+    } else {
+      field.isValid = false
+    }
+  } })
+
+if (document.querySelectorAll('[data-validate]').length) {
+  document.addEventListener('bouncerFormValid', function (event) {
+    const form = event.target
+    const captchaField = form.querySelector('.input__field--captcha')
+    let successful = true
+    if (captchaField) {
+      captcha.validate()
+      successful = captchaField.isValid
+      const captchaParent = captchaField.parentElement
+      if (!successful) {
+        captchaParent.querySelector('.input__label').innerText = 'Sorry, please try again.'
+        captchaParent.classList.add('input--error')
+        captcha.reset()
+        captchaField.value = ''
+      } else {
+        captchaParent.querySelector('.input__label').innerText = 'Correct!'
+        captchaParent.classList.remove('input--error')
+      }
+    }
+    if (!successful) return false
+
+    // Put what to do on successful submit here...
+	var xhttp = new XMLHttpRequest();
+  	xhttp.onreadystatechange = function() {
+    	if (this.readyState == 4 && this.status == 200) {
+      		document.getElementById("contactresult").innerHTML = this.responseText;
+    		event.target.classList.add('form--successful')
+    	}
+  	};
+    var webalias_ContactForm_submit_ajaxurl = document.getElementById("webalias_ContactForm_submit_ajaxurl").value;
+    var cust_id = document.getElementById("cust_id").value;
+    var lead_fname = document.getElementById("lead_fname").value;
+    var lead_lname = document.getElementById("lead_lname").value;
+    var lead_phone = document.getElementById("lead_phone").value;
+    var lead_email = document.getElementById("lead_email").value;
+    var lead_nots = document.getElementById("lead_nots").value;
+    var customer_url = document.getElementById("customer_url").value;
+    var data = "action=webalias_contact_form&cust_id="+cust_id+"&lead_fname="+lead_fname+"&lead_lname="+lead_lname+"&lead_phone="+lead_phone+"&lead_email="+lead_email+"&lead_nots="+lead_nots+"&customer_url="+customer_url;
+  	xhttp.open("POST", webalias_ContactForm_submit_ajaxurl, true);
+    xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  	xhttp.send(data);
+  })
+  document.addEventListener('bouncerShowError', function (event) {
+    const parent = event.target.parentElement
+    if (parent.classList.contains('input')) {
+      parent.classList.add('input--error')
+    }
+  })
+  document.addEventListener('bouncerRemoveError', function (event) {
+    const parent = event.target.parentElement
+    if (parent.classList.contains('input')) {
+      parent.classList.remove('input--error')
+    }
+  })
+}
+// eslint-disable-next-line no-unused-vars
+const validator = new Bouncer('[data-validate]', {
+  fieldClass: 'input__field--error',
+  errorClass: 'input__error-message',
+  fieldPrefix: 'field--',
+  errorPrefix: 'error--',
+  messageAfterField: false,
+  disableSubmit: true,
+  // Error messages by error type
+  messages: {
+    missingValue: {
+      checkbox: 'Required',
+      radio: 'Please select a value.',
+      select: 'Please select a value.',
+      'select-multiple': 'Please select at least one value.',
+      default: 'Required'
+    },
+    patternMismatch: {
+      email: 'Please enter a valid email address.',
+      url: 'Please enter a URL.',
+      number: 'Please enter a valid number.',
+      color: 'Please enter a color in `#rrggbb` format.',
+      date: 'Please enter a date in `YYYY-MM-DD` format',
+      time: 'Please use the 24-hour time format. Ex. 23:00',
+      month: 'Please use the YYYY-MM format',
+      default: 'Please match the requested format.'
+    },
+    outOfRange: {
+      over: 'Please select a value no more than {max}.',
+      under: 'Please select a value no less than {min}.'
+    },
+    wrongLength: {
+      over: 'Please limit your input to {maxLength} characters. You have entered {length} characters.',
+      under: 'Please enter {minLength} characters or more. You have entered {length} characters.'
+    }
+  }
+})
+
+// Dirty input fields and captcha.
+Array.from(document.querySelectorAll('[type="text"], [type="email"], [type="tel"], [type="number"], [type="url"], textarea')).forEach(function (field) {
+  // eslint-disable-next-line no-unused-vars
+  const fieldEl = new DirtyInput(field)
+  // Create captcha reload button.
+  if (field.classList.contains('input__field--captcha')) {
+    const button = document.createElement('button')
+    button.setAttribute('type', 'button')
+    button.classList.add('button', 'button--icon', 'button--clean')
+    button.innerHTML = '↻'
+    field.parentElement.insertBefore(button, field)
+    button.addEventListener('click', function () {
+      captcha.reset()
+    })
+  }
+})
+
+// Modals.
+Array.from(document.querySelectorAll('.modal')).forEach(function (modal) {
+  // eslint-disable-next-line no-unused-vars
+  const modalEl = new Modal(modal, { closeFromOverlay: false,
+    on: {
+      close: function (modal) {
+        // Reset form.
+        const fields = modal.content.querySelectorAll('[type="text"], [type="email"], [type="tel"], [type="number"], [type="url"], textarea')
+        Array.from(fields).forEach(function (field) {
+          const container = field.parentElement
+          const errorMessage = container.querySelector('.input__error-message')
+          field.value = ''
+          field.classList.remove('input__field--dirty')
+          field.classList.remove('input__field--error')
+          container.classList.remove('input--dirty')
+          container.classList.remove('input--error')
+          if (errorMessage) errorMessage.parentNode.removeChild(errorMessage)
+        })
+        const forms = modal.content.querySelectorAll('form')
+        captcha.reset()
+        // Reset forms that were successful. Wrap this in a setTimeout to allow modal to completely
+        // close first.
+        setTimeout(function () {
+          Array.from(forms).forEach(function (form) {
+            form.classList.remove('form--successful')
+          })
+        }, 500)
+      }
+    } })
+})
+
+// If Instagram feed exists, create it and turn it into a slider.
+// IMPORTANT: Helpful data to remember (see https://www.instagram.com/developer/):
+//  - client_id = 3e38185e7f764d34ae3ebd00532702bd
+//  - redirect_uri = http://newulife.com/
+//  - access_token = {"access_token": "3848888260.3e38185.5b3cd2482c214153a00b8df558c255d0", "user": {"id": "3848888260", "username": "the_lodge_rentals", "profile_picture": "https://scontent.cdninstagram.com/vp/9e30d3564c0dcdf33b74022df46aa726/5CC7E7AC/t51.2
+//  - result = {"pagination": {}, "data": [{"id": "1333461303511337188_3848888260", "user": {"id": "3848888260", "full_name": "The_Lodge_Rentals", "profile_picture": "https://scontent.cdninstagram.com/vp/9e30d3564c0dcdf33b74022df46aa726/5CC7E7AC/t51.2885-19/s150x150/14156448_1757414994519168_1387732061_a.jpg?_nc_ht=scontent.cdninstagram.com", "username": "the_lodge_rentals"}, "images": {"thumbnail": {"width": 150, "height": 150, "url": "https://scontent.cdninstagram.com/vp/6e7182d6bb548ef51a9a149680d4cdb3/5CC6AA7B/t51.2885-15/e35/s150x150/14268992_1289104364442154_527670527_n.jpg?_nc_ht=scontent.cdninstagram.com"}, "low_resolution": {"width": 320, "height": 320, "url": "https://scontent.cdninstagram.com/vp/02b95ccc4c926476b22104baabc649c0/5CC617FF/t51.2885-15/e35/s320x320/14268992_1289104364442154_527670527_n.jpg?_nc_ht=scontent.cdninstagram.com"}, "standard_resolution": {"width": 640, "height": 640, "url": "https://scontent.cdninstagram.com/vp/32127df0541c1d2d80091e807fa54d4a/5CC66CBF/t51.2885-15/sh0.08/e35/s640x640/14268992_1289104364442154_527670527_n.jpg?_nc_ht=scontent.cdninstagram.com"}}, "created_time": "1473180996", "caption": {"id": "17861907295013503", "text": "Barn doors. Aren't they so dreamy!? \ud83d\ude0d\ud83d\ude0d. Closed, open, they are perfect for every event. Just $75. Ask is if you'd like to book them for your event. \ud83d\udc4d\ud83c\udffb", "created_time": "1473180996", "from": {"id": "3848888260", "full_name": "The_Lodge_Rentals", "profile_picture": "https://scontent.cdninstagram.com/vp/9e30d3564c0dcdf33b74022df46aa726/5CC7E7AC/t51.2885-19/s150x150/14156448_1757414994519168_1387732061_a.jpg?_nc_ht=scontent.cdninstagram.com", "username": "the_lodge_rentals"}}, "user_has_liked": false, "likes": {"count": 0}, "tags": [], "filter": "Normal", "comments": {"count": 1}, "type": "image", "link": "https://www.instagram.com/p/BKBZ_2Vhcjk/", "location": {"latitude": 40.4364505105, "longitude": -111.8802184805, "name": "The Lodge at Traverse Mountain", "id": 768059250}, "attribution": null, "users_in_photo": []}], "meta": {"code": 200}}
+const instagramFeed = document.querySelector('[data-instagram-feed]')
+if (instagramFeed) {
+  fetch('https://api.instagram.com/v1/users/self/media/recent/?count=20&access_token=3848888260.3e38185.5b3cd2482c214153a00b8df558c255d0').then(function (response) {
+    return response.json()
+  }).then(function (result) {
+    const posts = result.data
+    const instagramFeedSection = instagramFeed.parentElement.parentElement
+    instagramFeedSection.style.display = 'block'
+    instagramFeed.classList.add('slider')
+    // @todo IMPORTANT: This is temporary. When the production Instagram feed is hooked up this
+    //     `while` loop should be removed.
+    while (posts.length < 7) {
+      posts.push(posts[posts.length - 1])
+    }
+    posts.forEach(function (post) {
+      const slide = document.createElement('a')
+      slide.classList.add('slider__slide')
+      slide.href = post.link
+      slide.setAttribute('target', '_blank')
+      slide.innerHTML = '<img src="' + post.images.standard_resolution.url + '" alt="' + post.caption.text + '" />'
+      instagramFeed.appendChild(slide)
+    })
+    // eslint-disable-next-line no-unused-vars
+    const slider = new Slider(instagramFeed, {
+      autoplay: false,
+      infinite: false,
+      dots: false
+    })
+  })
+}
+
+// -------------------------------------------------------------------------------------------------
+// Off Canvas Navigation plugin.
+//
+
+function initOffCanvasNav (options) {
+  options = Object.assign({
+    hamburgerClass: 'hamburger',
+    pageClass: 'page',
+    activeClass: 'nav--is-open'
+  }, options || {})
+
+  const navToggle = document.querySelector('.' + options.hamburgerClass)
+  const page = document.querySelector('.' + options.pageClass)
+  navToggle.addEventListener('click', function (event) {
+    page.classList.toggle(options.activeClass)
+  })
+}
+
+// -------------------------------------------------------------------------------------------------
+// Toggles plugin.
+//
+
+function initToggles (options) {
+  options = Object.assign({
+    // Classes.
+    toggleClass: 'toggle',
+    activeClass: 'toggle--is-active',
+    activeContentClass: 'toggle__content--is-active'
+  }, options || {})
+
+  const toggleElements = document.querySelectorAll('.' + options.toggleClass)
+  toggleElements.forEach(function (toggle, i) {
+    const hasDataAttr = toggle.dataset.toggle
+    const isAccordionStyle = toggle.parentElement.dataset.toggleMode === 'accordion' || toggle.dataset.toggleMode === 'accordion'
+    const toggleContent = hasDataAttr ? document.querySelector('[data-toggle-content="' + toggle.dataset.toggle + '"]') : toggle.nextElementSibling
+    const toggles = hasDataAttr ? toggle.parentElement.children : Array.from(toggle.parentElement.children).filter(function (element) {
+      return element.classList.contains(options.toggleClass)
+    })
+
+    // Add click event.
+    toggle.addEventListener('click', function (event) {
+      // Get currently active toggle.
+      const activeToggle = Array.from(toggles).find(function (content) {
+        return content.classList.contains(options.activeClass)
+      })
+      // Deactivate currently active toggle, but not in `accordion` mode.
+      if (activeToggle && (!isAccordionStyle || activeToggle !== toggle)) {
+        activeToggle.classList.remove(options.activeClass)
+        const activeToggleContent = hasDataAttr ? document.querySelector('[data-toggle-content="' + activeToggle.dataset.toggle + '"]') : activeToggle.nextElementSibling
+        if (activeToggleContent) {
+          activeToggleContent.classList.remove(options.activeContentClass)
+        }
+      }
+      // Activate new toggle.
+      if (toggle !== activeToggle) {
+        toggle.classList.toggle(options.activeClass)
+        toggleContent.classList.toggle(options.activeContentClass)
+      }
+    })
+  })
+}
+
+// -------------------------------------------------------------------------------------------------
+// Product Gallery.
+//
+
+function initProductGallery (options) {
+  options = Object.assign({
+    galleryClass: 'product__gallery',
+    thumbsClass: 'product__thumbs',
+    windowClass: 'product__window',
+    activeThumbClass: 'product__thumb--is-active'
+  }, options || {})
+
+  const productGalleries = document.querySelectorAll('.' + options.galleryClass)
+  productGalleries.forEach(function (gallery) {
+    const thumbs = gallery.querySelector('.' + options.thumbsClass)
+    const imageWindow = gallery.querySelector('.' + options.windowClass)
+    for (var i = thumbs.children.length - 1; i >= 0; i--) {
+      const thumbnail = thumbs.children[i]
+      thumbnail.addEventListener('click', function (event) {
+        const activeThumb = thumbs.querySelector('.' + options.activeThumbClass)
+        // Don't do anything if click was on active thumbnail.
+        if (activeThumb === thumbnail) return
+        // Deactivate any existing active thumbnail.
+        if (activeThumb) {
+          activeThumb.classList.remove(options.activeThumbClass)
+        }
+        // Activate thumbnail.
+        thumbnail.classList.add(options.activeThumbClass)
+        // Update the main image/window.
+        const img = thumbnail.querySelector('[src]')
+        let newElement
+        if (img.dataset.videoSrc) {
+          newElement = document.createElement('iframe')
+          newElement.setAttribute('src', img.dataset.videoSrc)
+          newElement.setAttribute('frameborder', '0')
+          newElement.setAttribute('allow', 'autoplay')
+          newElement.setAttribute('allowfullscreen', true)
+        } else {
+          newElement = document.createElement('img')
+          newElement.setAttribute('src', img.src)
+        }
+        imageWindow.replaceChild(newElement, imageWindow.children[0])
+      })
+    }
+  })
+}
+
+// -------------------------------------------------------------------------------------------------
+// Modal plugin.
+//
+
+function Modal (element, options) {
+  options = Object.assign({
+    // Settings:
+    closeFromOverlay: true,
+    // Classes:
+    contentClass: 'modal__content',
+    closeClass: 'modal__close',
+    activeClass: 'modal--open',
+    // Callbacks:
+    on: {
+      open: null,
+      close: null,
+      init: null,
+      destroy: null
+    }
+  }, options || {})
+
+  // Create public API.
+  const modal = {}
+
+  /**
+   * Open modal.
+   */
+  modal.open = function () {
+    modal.container.classList.add(options.activeClass)
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    modal.isOpen = true
+    if (typeof options.on.open === 'function') options.on.open(modal, options)
+  }
+
+  /**
+   * Close modal.
+   */
+  modal.close = function () {
+    modal.container.classList.remove(options.activeClass)
+    document.documentElement.style.overflow = ''
+    document.body.style.overflow = ''
+    modal.isOpen = false
+    jQuery('.marketselectorpopup1').find('.marketselector-error').hide();
+    jQuery('#marketIcon').removeClass();
+    jQuery('#countrycode').val('');
+    jQuery('#languagecode').val('');
+    jQuery('#usertype').val('');
+    jQuery('#countryname').text('Select');
+    jQuery('.marketselectorpopup1 ul.dropdown-menu li').each(function() {
+		jQuery( this ).show();
+	});
+    if (typeof options.on.close === 'function') options.on.close(modal, options)
+  }
+
+  /**
+   * Toggle modal.
+   */
+  modal.toggle = function () {
+    return modal[modal.isOpen ? 'close' : 'open']()
+  }
+
+  /**
+   * Destroy modal. Detach modal events.
+   */
+  modal.destroy = function () {
+    // Remove overlay click.
+    if (options.closeFromOverlay) {
+      modal.container.removeEventListener('click', modal.close, false)
+      modal.content.removeEventListener('click', stopProp, false)
+    }
+    // Add click listener to close buttons.
+    Array.from(modal.closeButtons).forEach(function (button) {
+      button.addEventListener('click', modal.close)
+    })
+    // Find button toggles and add click listeners.
+    Array.from(modal.openButtons).forEach(function (button) {
+      button.addEventListener('click', modal.open)
+    })
+    // Run callback.
+    if (typeof options.on.destroy === 'function') options.on.destroy(modal, options)
+  }
+
+  /**
+   * Stop propagation. This is necessary so events can be removed using removeEventListener.
+   * @param  {Event} event Event Object.
+   */
+  function stopProp (event) {
+    event.stopPropagation()
+  }
+
+  /**
+   * Initialize modal.
+   */
+  function init () {
+    // Attach elements to modal.
+    modal.container = element instanceof HTMLElement ? element : document.querySelector(element)
+    modal.content = modal.container.querySelector('.' + options.contentClass)
+    modal.closeButtons = modal.container.querySelectorAll('.' + options.closeClass) || []
+    modal.openButtons = modal.container.dataset.modal ? document.querySelectorAll('[data-modal-open="' + modal.container.dataset.modal + '"]') : []
+    // Add listener to close modal when clicking on overlay.
+    if (options.closeFromOverlay) {
+      modal.container.addEventListener('click', modal.close, false)
+      modal.content.addEventListener('click', stopProp, false)
+    }
+    // Add click listener to close buttons.
+    Array.from(modal.closeButtons).forEach(function (button) {
+      button.addEventListener('click', modal.close)
+    })
+    // Find button toggles and add click listeners.
+    Array.from(modal.openButtons).forEach(function (button) {
+      button.addEventListener('click', modal.open)
+    })
+    // Run callback.
+    if (typeof options.on.init === 'function') options.on.init(modal, options)
+  }
+
+  // Initialize modal.
+  init()
+
+  return modal
+}
+
+// -------------------------------------------------------------------------------------------------
+// Dirty Input plugin.
+//
+
+function DirtyInput (input) {
+  input.addEventListener('blur', function (event) {
+    if (event.target.value) {
+      input.classList.add('input__field--dirty')
+      if (input.parentElement.classList.contains('input')) {
+        input.parentElement.classList.add('input--dirty')
+      }
+    } else {
+      input.classList.remove('input__field--dirty')
+      if (input.parentElement.classList.contains('input')) {
+        input.parentElement.classList.remove('input--dirty')
+      }
+    }
+  })
+}
+
+// -------------------------------------------------------------------------------------------------
+// Slider constructor and prototype.
+//
+
+/**
+ * Slider prototype.
+ */
+Slider.prototype = {
+  defaults: {
+    // Options:
+    autoplay: 6000,
+    start: 0,
+    infinite: true,
+    vertical: false,
+    dots: true,
+    nextHtml: '<svg class="slider__next-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="1.414"><path fill="none" d="M0 0h64v64H0z"/><path d="M19.08.002L51 31.696 19.08 64 13 57.905l25.84-26.209L13 6.097 19.08.002z" fill-rule="nonzero"/></svg>',
+    previousHtml: '<svg class="slider__previous-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" xmlns:serif="http://www.serif.com/" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="1.414"><path fill="none" d="M0 0h64v64H0z"/><clipPath id="a"><path serif:id="arrow-left" d="M0 0h64v64H0z"/></clipPath><g clip-path="url(#a)"><path d="M44.92.002L13 31.696 44.92 64 51 57.905 25.16 31.696 51 6.097 44.92.002z" fill-rule="nonzero"/></g></svg>',
+    // Classes:
+    sliderClass: 'slider',
+    verticalClass: 'slider--vertical',
+    stageClass: 'slider__stage',
+    slidesClass: 'slider__slides',
+    slideClass: 'slider__slide',
+    previousClass: 'slider__previous',
+    nextClass: 'slider__next',
+    dotsClass: 'slider__dots',
+    dotClass: 'slider__dot',
+    playToggleClass: 'play-toggle',
+    playingClass: 'play-toggle--playing',
+    activeSlideClass: 'slider__slide--is-active',
+    activeDotClass: 'slider__dot--is-active'
+  },
+  buildDom: function (element) {
+    var slider = this
+    slider.dom = {}
+
+    // Assign root element.
+    slider.dom.slider = element instanceof HTMLElement ? element : document.querySelector(element)
+    element = slider.dom.slider
+    element.classList.add(slider.options.sliderClass)
+
+    // Check for existing dom elements (if not found, they will be created later).
+    slider.dom.slides = element.querySelector('.' + slider.options.slidesClass)
+    slider.dom.stage = element.querySelector('.' + slider.options.stageClass)
+    slider.dom.next = element.querySelector('.' + slider.options.nextClass)
+    slider.dom.previous = element.querySelector('.' + slider.options.previousClass)
+    slider.dom.dots = element.querySelector('.' + slider.options.dotsClass)
+
+    // Create slides container.
+    if (!slider.dom.slides) {
+      slider.dom.slides = document.createElement('div')
+      slider.dom.slides.classList.add(slider.options.slidesClass)
+      Array.from(element.children).forEach(function (slide) {
+        slide.classList.add(slider.options.slideClass)
+        slider.dom.slides.appendChild(slide)
+      })
+    }
+
+    // Create stage, which is useful for styling.
+    if (!slider.dom.stage) {
+      slider.dom.stage = document.createElement('div')
+      slider.dom.stage.classList.add(slider.options.stageClass)
+      element.appendChild(slider.dom.stage)
+    }
+
+    // Append slides inside of the stage.
+    if (!slider.dom.stage.querySelector('.' + slider.options.slidesClass)) {
+      slider.dom.stage.appendChild(slider.dom.slides)
+    }
+
+    // Check if it's vertical.
+    if (slider.options.vertical) {
+      element.classList.add(slider.options.verticalClass)
+    }
+
+    // Add previous control.
+    if (!slider.dom.previous) {
+      slider.dom.previous = document.createElement('a')
+      slider.dom.previous.classList.add(slider.options.previousClass)
+      slider.dom.previous.innerHTML = slider.options.previousHtml
+      element.appendChild(slider.dom.previous)
+    }
+
+    // Add next control.
+    if (!slider.dom.next) {
+      slider.dom.next = document.createElement('a')
+      slider.dom.next.classList.add(slider.options.nextClass)
+      slider.dom.next.innerHTML = slider.options.nextHtml
+      element.appendChild(slider.dom.next)
+    }
+
+    // Add dot controls.
+    if (slider.options.dots && !slider.options.vertical) {
+      if (!slider.dom.dots) {
+        slider.dom.dots = document.createElement('div')
+        slider.dom.dots.classList.add(slider.options.dotsClass)
+        element.appendChild(slider.dom.dots)
+      }
+      if (!slider.dom.dots.children.length) {
+        Array.from(element.children).forEach(function (slide, i) {
+          var dot = document.createElement('a')
+          dot.classList.add(slider.options.dotClass)
+          dot.dataset.sliderSlide = i
+          dot.addEventListener('click', function (event) {
+            return slider.goTo(i)
+          })
+          slider.dom.dots.appendChild(dot)
+        })
+      }
+    }
+  },
+  refresh: function () {
+    var slider = this
+    var maxSlide
+    slider.max.index = slider.dom.slides.children.length - 1
+    maxSlide = slider.dom.slides.children[slider.max.index]
+    slider.max.offset = maxSlide[slider.offsetProp] + maxSlide[slider.sizeProp] - slider.dom.stage[slider.sizeProp]
+    Array.from(slider.dom.slides.children).forEach(function (slide) {
+      slide.dataset.sliderOffset = slide[slider.offsetProp] + slider.offset
+    })
+    slider.goTo(slider.index)
+  },
+  goTo: function (slide) {
+    var slider = this
+
+    // Convert slide to the slide's index number.
+    if (slide === undefined || slide === 'next') {
+      slide = slider._nextSlide()
+    } else if (slide === 'previous' || slide === 'prev') {
+      slide = slider._previousSlide()
+    }
+
+    // Deactivate current slide.
+    slider.dom.slides.children[slider.index].classList.remove(slider.options.activeSlideClass)
+    if (slider.options.dots && slider.dom.dots) slider.dom.dots.children[slider.index].classList.remove(slider.options.activeDotClass)
+
+    // Activate new slide.
+    slider.dom.slides.children[slide].classList.add(slider.options.activeSlideClass)
+    if (slider.options.dots && slider.dom.dots) slider.dom.dots.children[slide].classList.add(slider.options.activeDotClass)
+
+    // Set offset. Cap it to the size of all slides minus the size of the stage.
+    slider.offset = parseInt(slider.dom.slides.children[slide].dataset.sliderOffset, 10)
+    if (!slider.options.infinite && slider.offset >= slider.max.offset) {
+      if (!slider.max.maxed) slider.index = slide
+      slider.max.maxed = true
+      slider.offset = slider.max.offset
+    } else {
+      slider.max.maxed = false
+      slider.index = slide
+    }
+
+    // Disable next/previous as needed.
+    if (!slider.options.infinite) {
+      if (slider.index === slider.dom.slides.children.length - 1 || slider.max.maxed) {
+        slider.dom.next.setAttribute('disabled', true)
+      } else {
+        slider.dom.next.removeAttribute('disabled')
+      }
+      if (slider.index === 0) {
+        slider.dom.previous.setAttribute('disabled', true)
+      } else {
+        slider.dom.previous.removeAttribute('disabled')
+      }
+    }
+
+    // Update the stage's margin.
+    slider.dom.slides.style[slider.options.vertical ? 'marginTop' : 'marginLeft'] = '-' + slider.offset + 'px'
+
+    // Reset timer.
+    if (slider.timer) {
+      slider.pause()
+      slider.play()
+    }
+  },
+  play: function () {
+    var slider = this
+    if (slider.timer || typeof slider.options.autoplay !== 'number') return
+    slider.timer = setInterval(function () {
+      slider.goTo()
+    }, slider.options.autoplay)
+  },
+  pause: function () {
+    var slider = this
+    clearInterval(slider.timer)
+    slider.timer = null
+  },
+  init: function (element) {
+    var slider = this
+    // Build the dom.
+    slider.buildDom(element)
+    // Add events.
+    slider._addListeners()
+    // Refresh the offsets.
+    slider.refresh()
+    // Kick it off.
+    slider.goTo(slider.options.start)
+    if (slider.options.autoplay) slider.play()
+  },
+  destroy: function () {
+    this._removeListeners()
+  },
+  _previousSlide: function () {
+    return this.index <= 0
+      ? (this.options.infinite ? this.dom.slides.children.length - 1 : 0)
+      : this.index - 1
+  },
+  _nextSlide: function () {
+    return this.index >= this.max.index
+      ? (this.options.infinite ? 0 : this.max.index)
+      : this.index + 1
+  },
+  _addListeners: function () {
+    var slider = this
+    // Previous control click.
+    slider._addEvent('previous', 'click', function (event) {
+      if (slider.dom.previous.hasAttribute('disabled')) return
+      return slider.goTo('previous')
+    })
+    // Next control click.
+    slider._addEvent('next', 'click', function (event) {
+      if (slider.dom.next.hasAttribute('disabled')) return
+      return slider.goTo('next')
+    })
+    // Add autoplay events.
+    slider._addEvent('slider', 'mouseenter', function () {
+      slider.pause()
+    })
+    slider._addEvent('slider', 'mouseleave', function () {
+      slider.play()
+    })
+    // Add window resize.
+    slider._events['window.resize'] = debounce(function () {
+      slider.refresh()
+    }, 100)
+    window.addEventListener('resize', slider._events['window.resize'])
+  },
+  _removeListeners: function () {
+    var slider = this
+    // Remove window resize.
+    window.removeEventListener('resize', slider._events['window.resize'])
+    delete slider._events['window.resize']
+    // Remove other cached events.
+    Object.keys(slider._events).forEach(function (id) {
+      var key = id.split('.')
+      slider.dom[key[0]].removeEventListener(key[1], slider._events[id])
+      delete slider._events[id]
+    })
+  },
+  _addEvent: function (name, event, fn) {
+    var slider = this
+    var id = [name, event].join('.')
+    if (!slider._events[id]) slider._events[id] = fn
+    slider.dom[name].addEventListener(event, fn)
+  },
+  _removeEvent: function (name, event) {
+    var slider = this
+    var id = [name, event].join('.')
+    if (slider._events[id]) {
+      slider.dom[name].removeEventListener(event, slider._events[id])
+      delete slider._events[id]
+    }
+  }
+}
+
+/**
+ * Slider constructor.
+ */
+function Slider (element, options) {
+  // Set options.
+  this.options = Object.assign({}, this.defaults, options || {})
+  if (typeof this.options.autoplay !== 'number') this.options.autoplay = false
+
+  // Set up initial state.
+  this.index = 0
+  this.offset = 0
+  this.timer = null
+  this.offsetProp = 'offsetLeft'
+  this.sizeProp = 'offsetWidth'
+  if (this.options.vertical) {
+    this.offsetProp = 'offsetTop'
+    this.sizeProp = 'offsetHeight'
+  }
+  this.max = {
+    index: 0,
+    slide: null,
+    offset: 0,
+    maxed: false
+  }
+  this._events = {}
+
+  // Initialize this slider.
+  this.init(element)
+}
+
+// Initialize sliders.
+Array.from(document.querySelectorAll('.slider')).forEach(function (element) {
+  const options = {
+    autoplay: element.dataset.sliderAutoplay ? parseInt(element.dataset.sliderAutoplay, 10) : false,
+    vertical: 'sliderVertical' in element.dataset,
+    infinite: element.dataset.sliderInfinite !== 'false'
+  }
+  // eslint-disable-next-line no-unused-vars
+  const slider = new Slider(element, options)
+})
+
+// -------------------------------------------------------------------------------------------------
+// Helpers.
+//
+
+function debounce (callback, wait, immediate) {
+  if (wait === undefined) wait = 100
+  var timeout
+  return function () {
+    var context = this; var args = arguments
+    var later = function () {
+      timeout = null
+      if (!immediate) callback.apply(context, args)
+    }
+    var callNow = immediate && !timeout
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+    if (callNow) callback.apply(context, args)
+  }
+};
+
+jQuery('.market-select-popup').click( function(event) {
+	event.preventDefault();
+	var currentLocation = window.location.host;
+	if(currentLocation.indexOf('www') != -1){
+		jQuery(".marketselectorpopup").addClass("modal--open");
+		document.documentElement.style.overflow = 'hidden';
+		document.body.style.overflow = 'hidden';
+	} else {
+		//window.open(this.href, '_blank');
+		jQuery(".marketselectorpopup1").addClass("modal--open");
+		document.documentElement.style.overflow = 'hidden';
+		document.body.style.overflow = 'hidden';
+	}
+});
+
+jQuery('.marketselectorpopup1 button').click( function(event) {
+	event.preventDefault();
+	jQuery(".marketselectorpopup1 .dropdown-menu").toggle();
+});
